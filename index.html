@@ -716,19 +716,60 @@
                     faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
                     
                     if (faceMatcher && resizedDetections.length > 0) {
+                        const ctx = canvas.getContext('2d');
                         resizedDetections.forEach(detection => {
                             const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
                             const box = detection.detection.box;
-                            const label = bestMatch.label === 'unknown' 
-                                ? `Desconocido (${Math.round((1 - bestMatch.distance) * 100)}%)` 
-                                : `${bestMatch.label} (${Math.round((1 - bestMatch.distance) * 100)}%)`;
+                            const isKnown = bestMatch.label !== 'unknown';
+                            const confidence = Math.round((1 - bestMatch.distance) * 100);
                             
-                            const drawBox = new faceapi.draw.DrawBox(box, { 
-                                label: label,
-                                boxColor: bestMatch.label === 'unknown' ? '#f56565' : '#48bb78',
-                                lineWidth: 3
-                            });
-                            drawBox.draw(canvas);
+                            // Dibujar el rectángulo alrededor del rostro
+                            ctx.strokeStyle = isKnown ? '#48bb78' : '#f56565';
+                            ctx.lineWidth = 4;
+                            ctx.strokeRect(box.x, box.y, box.width, box.height);
+                            
+                            // Preparar el texto
+                            const label = isKnown 
+                                ? `${bestMatch.label} (${confidence}%)` 
+                                : `Desconocido (${confidence}%)`;
+                            
+                            // Configurar el texto
+                            ctx.font = 'bold 20px Arial';
+                            ctx.textBaseline = 'top';
+                            
+                            // Medir el texto para centrar el fondo
+                            const textWidth = ctx.measureText(label).width;
+                            const textHeight = 28;
+                            const padding = 10;
+                            
+                            // Calcular posición centrada en la parte superior del rostro
+                            const textX = box.x + (box.width - textWidth) / 2 - padding;
+                            const textY = box.y - textHeight - 10;
+                            
+                            // Dibujar fondo del texto (centrado)
+                            ctx.fillStyle = isKnown ? '#48bb78' : '#f56565';
+                            ctx.fillRect(
+                                textX, 
+                                textY, 
+                                textWidth + (padding * 2), 
+                                textHeight
+                            );
+                            
+                            // Dibujar el texto centrado
+                            ctx.fillStyle = 'white';
+                            ctx.fillText(
+                                label, 
+                                textX + padding, 
+                                textY + 5
+                            );
+                            
+                            // Dibujar punto central del rostro (opcional, para debugging)
+                            const centerX = box.x + box.width / 2;
+                            const centerY = box.y + box.height / 2;
+                            ctx.fillStyle = isKnown ? '#48bb78' : '#f56565';
+                            ctx.beginPath();
+                            ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
+                            ctx.fill();
                         });
                     } else {
                         faceapi.draw.drawFaceExpressions(canvas, resizedDetections);
