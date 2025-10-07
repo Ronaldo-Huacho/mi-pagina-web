@@ -637,37 +637,48 @@
             elements.systemStatus.className = `status ${type}`;
             elements.systemStatus.textContent = message;
         }
-video.addEventListener('play', () => {
-    canvas = faceapi.createCanvasFromMedia(video);
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    video.parentElement.append(canvas);
 
-    // Esperar que el video tenga sus dimensiones reales
-    video.addEventListener('loadedmetadata', () => {
-        // Ajustar tamaño del canvas al tamaño real del video
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.style.width = video.offsetWidth + 'px';
-        canvas.style.height = video.offsetHeight + 'px';
-
-        // Ahora sí match con las dimensiones
-        displaySize = { width: canvas.width, height: canvas.height };
-        faceapi.matchDimensions(canvas, displaySize);
-    });
-
-    isVideoRunning = true;
-    startDetection();
-
-    elements.btnStart.disabled = true;
-    elements.btnStop.disabled = false;
-    elements.btnCapture.disabled = false;
-
-    updateStatus('ready', '🎥 Cámara activa - Detectando rostros...');
-    showToast('Cámara iniciada correctamente', 'success');
-});
-
+        async function startVideo() {
+            try {
+                updateStatus('loading', 'Solicitando acceso a la cámara...');
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    } 
+                });
+                
+                video = elements.video;
+                video.srcObject = stream;
+                
+                video.addEventListener('play', () => {
+                    canvas = faceapi.createCanvasFromMedia(video);
+                    canvas.style.position = 'absolute';
+                    canvas.style.top = '0';
+                    canvas.style.left = '0';
+                    video.parentElement.append(canvas);
+                    
+                    displaySize = { width: video.videoWidth, height: video.videoHeight };
+                    faceapi.matchDimensions(canvas, displaySize);
+                    
+                    isVideoRunning = true;
+                    startDetection();
+                    
+                    elements.btnStart.disabled = true;
+                    elements.btnStop.disabled = false;
+                    elements.btnCapture.disabled = false;
+                    
+                    updateStatus('ready', '🎥 Cámara activa - Detectando rostros...');
+                    showToast('Cámara iniciada correctamente', 'success');
+                });
+            } catch (error) {
+                console.error('Error al acceder a la cámara:', error);
+                updateStatus('error', '❌ No se pudo acceder a la cámara');
+                showToast('No se pudo acceder a la cámara. Verifica los permisos.', 'error');
+            }
+        }
 
         function stopVideo() {
             if (video && video.srcObject) {
